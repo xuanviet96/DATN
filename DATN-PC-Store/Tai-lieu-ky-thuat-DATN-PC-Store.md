@@ -12,7 +12,7 @@ Oct 9, 2026 · @hector
 | --- | --- |
 | Tên tiếng Việt | Xây dựng hệ thống thương mại điện tử bán linh kiện máy tính và hỗ trợ build PC |
 | Tên tiếng Anh | Building an E-commerce System for PC Components with a PC Build Assistant |
-| Mô hình tham khảo | kccshop.vn (catalog linh kiện, bộ lọc thông số, công cụ Build PC) |
+| Mô hình tham khảo | hacom.vn (catalog linh kiện, bộ lọc thông số, công cụ Build PC) |
 | Loại sản phẩm | Web application, kiến trúc REST API tách biệt Backend (Spring Boot) và Frontend (Next.js) |
 
 **Mục tiêu tổng quát (General Objective):** xây dựng một hệ thống TMĐT hoàn chỉnh cho ngành hàng linh kiện PC, cho phép khách hàng tìm kiếm linh kiện theo thông số kỹ thuật, tự lắp ráp cấu hình được kiểm tra tương thích, và đặt hàng trực tuyến.
@@ -30,7 +30,7 @@ Oct 9, 2026 · @hector
 
 Bán linh kiện PC khác với bán hàng tổng hợp ở chỗ giá trị của sản phẩm nằm ở thông số kỹ thuật, và các sản phẩm phụ thuộc lẫn nhau.
 
-| Khía cạnh | E-commerce tổng hợp (Shopee, Tiki) | E-commerce linh kiện PC (kccshop.vn) | Hệ quả thiết kế |
+| Khía cạnh | E-commerce tổng hợp (Shopee, Tiki) | E-commerce linh kiện PC (hacom.vn) | Hệ quả thiết kế |
 | --- | --- | --- | --- |
 | Mô hình dữ liệu sản phẩm | Vài thuộc tính chung: tên, giá, màu, kích cỡ | Mỗi danh mục có bộ thông số riêng: CPU (socket, core, TDP), Mainboard (socket, chipset, form factor, RAM type), RAM (DDR4/DDR5, bus), PSU (wattage, chuẩn 80 Plus), Case (form factor hỗ trợ, chiều dài GPU tối đa) | Cần Dynamic Attributes theo danh mục (Category Attribute Schema) |
 | Tìm kiếm và lọc | Lọc theo giá, thương hiệu, đánh giá | Lọc đồng thời nhiều thông số: socket = AM5 AND TDP <= 105W AND số nhân >= 8 | Cần Spec Filtering với toán tử EQ/IN/RANGE, index trên bảng thông số |
@@ -52,8 +52,8 @@ Phạm vi được giới hạn ở những tính năng chứng minh được ha
 | Guest, Customer | Lọc đa thông số (Spec Filtering) | Lọc theo danh mục, khoảng giá, thương hiệu và nhiều thông số kỹ thuật cùng lúc; phân trang, sắp xếp | Must |
 | Guest, Customer | Công cụ Build PC | Chọn linh kiện theo từng slot (CPU, Mainboard, RAM, GPU, Storage, PSU, Case, Cooler), kiểm tra tương thích thời gian thực, tính tổng công suất và tổng giá, lưu cấu hình (Customer), thêm cả bộ vào giỏ | Must |
 | Guest, Customer | Giỏ hàng (Cart) | Thêm, sửa số lượng, xóa; Guest lưu giỏ phía client, Customer lưu phía server | Must |
-| Customer | Đặt hàng và bảng giá | Checkout từ giỏ, nhập địa chỉ giao hàng, chọn phương thức thanh toán COD hoặc chuyển khoản, nhận mã đơn | Must |
-| Customer | Tra cứu đơn hàng | Xem lịch sử đơn, chi tiết đơn, trạng thái hiện tại, hủy đơn khi còn ở trạng thái PENDING | Must |
+| Customer | Đặt hàng và bảng giá | Checkout từ giỏ, nhập địa chỉ giao hàng, chọn phương thức thanh toán COD hoặc chuyển khoản, nhận mã đơn. Không hỗ trợ Guest đặt hàng: Guest bấm đặt hàng sẽ được chuyển sang đăng nhập hoặc đăng ký, giỏ phía client được gộp vào giỏ server sau khi đăng nhập | Must |
+| Customer | Tra cứu đơn hàng | Xem lịch sử đơn, chi tiết đơn, trạng thái hiện tại; hủy đơn khi còn ở trạng thái PENDING sau khi xác nhận trên hộp thoại (không cần nhập lý do) | Must |
 | Customer | Tài khoản | Đăng ký, đăng nhập, làm mới token, đổi mật khẩu, quản lý địa chỉ | Must |
 | Admin, Staff | Quản lý danh mục và linh kiện | CRUD danh mục, sản phẩm, hình ảnh, giá; ẩn hoặc hiện sản phẩm | Must |
 | Admin | Quản lý thuộc tính động | Định nghĩa bộ thuộc tính cho từng danh mục: tên, kiểu dữ liệu, đơn vị, có lọc được hay không, dùng cho luật tương thích hay không | Must |
@@ -62,7 +62,7 @@ Phạm vi được giới hạn ở những tính năng chứng minh được ha
 | Admin | Quản lý người dùng và vai trò | Danh sách người dùng, gán vai trò STAFF, khóa tài khoản | Should |
 | Admin | Dashboard thống kê | Doanh thu theo ngày, đơn theo trạng thái, top sản phẩm | Could |
 
-**Ngoài phạm vi (Out of Scope):** tích hợp cổng thanh toán thật (VNPay, MoMo), tích hợp đơn vị vận chuyển, đánh giá và bình luận sản phẩm, chương trình khuyến mãi phức tạp, đa ngôn ngữ, ứng dụng di động. Các mục này được ghi nhận là hướng phát triển trong chương kết luận.
+**Ngoài phạm vi (Out of Scope):** đặt hàng không cần tài khoản (Guest checkout), tích hợp cổng thanh toán thật (VNPay, MoMo), tích hợp đơn vị vận chuyển, đánh giá và bình luận sản phẩm, chương trình khuyến mãi phức tạp, đa ngôn ngữ, ứng dụng di động. Các mục này được ghi nhận là hướng phát triển trong chương kết luận.
 
 ## Phần 2: Đặc tả yêu cầu phần mềm (SRS)
 
@@ -86,7 +86,7 @@ Hệ thống có 20 yêu cầu chức năng chia theo 5 nhóm nghiệp vụ và 
 | FR-12 | Chuyển Build vào giỏ hàng | Customer | buildId | Giỏ hàng gồm toàn bộ linh kiện của build | Must |
 | FR-13 | Tạo đơn hàng | Customer | Danh sách items, địa chỉ giao hàng, paymentMethod (COD, BANK\_TRANSFER), note | Đơn hàng trạng thái PENDING, mã đơn, snapshot giá; 409 nếu hết hàng | Must |
 | FR-14 | Tra cứu đơn hàng | Customer | orderId hoặc orderCode | Chi tiết đơn, lịch sử chuyển trạng thái | Must |
-| FR-15 | Hủy đơn hàng | Customer | orderId, lý do | Đơn chuyển sang CANCELLED, tồn kho được hoàn; 409 nếu đơn không còn ở PENDING | Must |
+| FR-15 | Hủy đơn hàng | Customer | orderId (Frontend hiện hộp xác nhận trước khi gửi, không yêu cầu lý do) | Đơn chuyển sang CANCELLED, tồn kho được hoàn; 409 nếu đơn không còn ở PENDING | Must |
 | FR-16 | CRUD danh mục | Admin | name, slug, parentId, attributeDefinitions | Danh mục được tạo hoặc cập nhật | Must |
 | FR-17 | CRUD sản phẩm và thông số | Admin, Staff | name, sku, categoryId, brandId, price, stock, specs (map key và value), images | Sản phẩm với thông số đã validate theo định nghĩa thuộc tính của danh mục | Must |
 | FR-18 | Quản lý thuộc tính động | Admin | categoryId, code, name, dataType (TEXT, NUMBER, BOOLEAN, ENUM), unit, filterable, usedInCompatibility, enumOptions | Định nghĩa thuộc tính cho danh mục; 409 nếu xóa thuộc tính đang được sản phẩm sử dụng | Must |
@@ -235,37 +235,42 @@ Mỗi luật là một Spring Bean implement CompatibilityRule, nên thêm luậ
 6. Ghi order\_status\_history (null → PENDING, actor = customer).
 7. Commit. Sau commit, gửi sự kiện OrderCreatedEvent để gửi email xác nhận (bất đồng bộ, không ảnh hưởng transaction).
 
-**Máy trạng thái đơn hàng (Order State Machine):**
+**Máy trạng thái đơn hàng (Order State Machine):** 5 trạng thái, khớp 1:1 với các tab "Đơn hàng của tôi" trên giao diện khách hàng (tham khảo hacom.vn).
+
+| Trạng thái | Nhãn hiển thị | Ý nghĩa |
+| --- | --- | --- |
+| PENDING | Chờ xác nhận | Vừa đặt, tồn kho đã được giữ |
+| CONFIRMED | Chờ lấy hàng | Shop đã xác nhận (hoặc đã nhận chuyển khoản) và đang chuẩn bị hàng |
+| SHIPPING | Đang giao | Đã bàn giao cho đơn vị vận chuyển |
+| COMPLETED | Hoàn thành | Giao thành công; với COD đánh dấu đã thanh toán |
+| CANCELLED | Đã hủy | Đơn bị hủy hoặc giao thất bại; tồn kho được hoàn |
 
 ```mermaid
 stateDiagram-v2
     [*] --> PENDING : Customer tạo đơn (trừ tồn kho)
     PENDING --> CONFIRMED : Staff xác nhận
     PENDING --> CANCELLED : Customer hoặc Staff hủy (hoàn tồn kho)
-    CONFIRMED --> PROCESSING : Staff bắt đầu đóng gói
+    CONFIRMED --> SHIPPING : Bàn giao vận chuyển
     CONFIRMED --> CANCELLED : Staff hủy (hoàn tồn kho)
-    PROCESSING --> SHIPPING : Bàn giao vận chuyển
-    SHIPPING --> DELIVERED : Giao thành công
-    SHIPPING --> RETURNED : Giao thất bại, hoàn về kho (hoàn tồn kho)
-    DELIVERED --> COMPLETED : Tự động sau 7 ngày hoặc Customer xác nhận
+    SHIPPING --> COMPLETED : Giao thành công
+    SHIPPING --> CANCELLED : Giao thất bại (hoàn tồn kho)
     COMPLETED --> [*]
     CANCELLED --> [*]
-    RETURNED --> [*]
 ```
 
 | Từ trạng thái | Sang trạng thái | Tác nhân được phép | Điều kiện | Tác động phụ |
 | --- | --- | --- | --- | --- |
 | (mới) | PENDING | Customer | Đủ tồn kho | Trừ tồn kho (RESERVE) |
 | PENDING | CONFIRMED | Staff, Admin | Đã liên hệ hoặc đã nhận chuyển khoản | Ghi history |
-| PENDING | CANCELLED | Customer (đơn của mình), Staff, Admin | Bắt buộc có lý do | Hoàn tồn kho (RELEASE) |
-| CONFIRMED | PROCESSING | Staff, Admin | không | Ghi history |
+| PENDING | CANCELLED | Customer (đơn của mình), Staff, Admin | Customer: chỉ cần xác nhận, không cần lý do. Staff, Admin: bắt buộc có lý do | Hoàn tồn kho (RELEASE) |
 | CONFIRMED | CANCELLED | Staff, Admin | Bắt buộc có lý do | Hoàn tồn kho (RELEASE) |
-| PROCESSING | SHIPPING | Staff, Admin | Có mã vận đơn (tùy chọn) | Ghi history |
-| SHIPPING | DELIVERED | Staff, Admin | không | Ghi history, với COD đánh dấu paymentStatus = PAID |
-| SHIPPING | RETURNED | Staff, Admin | Bắt buộc có lý do | Hoàn tồn kho (RELEASE) |
-| DELIVERED | COMPLETED | Customer, Scheduler | Sau 7 ngày kể từ DELIVERED | Ghi history |
+| CONFIRMED | SHIPPING | Staff, Admin | Có mã vận đơn (tùy chọn) | Ghi history |
+| SHIPPING | COMPLETED | Staff, Admin | không | Ghi history, với COD đánh dấu paymentStatus = PAID |
+| SHIPPING | CANCELLED | Staff, Admin | Bắt buộc có lý do (ví dụ giao thất bại) | Hoàn tồn kho (RELEASE) |
 
-Mọi chuyển trạng thái đi qua một phương thức duy nhất OrderStateMachine.transition(order, target, actor). Phương thức này tra bảng chuyển hợp lệ (Map\<OrderStatus, Set\<OrderStatus>>), kiểm tra vai trò, và ném InvalidStateTransitionException (HTTP 409) nếu không hợp lệ. Cách này đơn giản hơn Spring State Machine và đủ cho 9 trạng thái.
+Ghi chú thiết kế: bản trước có 8 trạng thái (thêm PROCESSING, DELIVERED, RETURNED và bước tự động chuyển COMPLETED sau 7 ngày). Bản này rút gọn vì PROCESSING không có tác động phụ, bước chờ 7 ngày chỉ cần khi có đổi trả (ngoài phạm vi), và RETURNED có cùng tác động với CANCELLED. Đơn giao thất bại được phân biệt qua lý do ghi trong order\_status\_history.
+
+Mọi chuyển trạng thái đi qua một phương thức duy nhất OrderStateMachine.transition(order, target, actor). Phương thức này tra bảng chuyển hợp lệ (Map\<OrderStatus, Set\<OrderStatus>>), kiểm tra vai trò, và ném InvalidStateTransitionException (HTTP 409) nếu không hợp lệ. Cách này đơn giản hơn Spring State Machine và đủ cho 5 trạng thái với 6 bước chuyển.
 
 ### 2.5 Yêu cầu phi chức năng (Non-functional Requirements)
 
@@ -429,7 +434,7 @@ Thuộc tính dạng danh sách (Case hỗ trợ nhiều form factor) lưu value
 | id | BIGSERIAL | PK |  |
 | order\_code | VARCHAR(30) | UNIQUE, NOT NULL | ORD-20261009-00042 |
 | user\_id | BIGINT | FK users(id), NOT NULL |  |
-| status | VARCHAR(20) | NOT NULL, CHECK IN (9 trạng thái) |  |
+| status | VARCHAR(20) | NOT NULL, CHECK IN ('PENDING', 'CONFIRMED', 'SHIPPING', 'COMPLETED', 'CANCELLED') |  |
 | payment\_method | VARCHAR(20) | NOT NULL, CHECK IN (COD, BANK\_TRANSFER) |  |
 | payment\_status | VARCHAR(20) | NOT NULL, CHECK IN (UNPAID, PAID, REFUNDED) |  |
 | subtotal | NUMERIC(15,0) | NOT NULL | Tổng tiền hàng |
@@ -720,7 +725,8 @@ Quy ước quyền: Public = không cần token; Customer = ROLE\_CUSTOMER trở
 | POST | /orders | Body: items, shippingAddress, paymentMethod, note | 201 OrderDto, 409 OUT\_OF\_STOCK | Customer | FR-13 |
 | GET | /orders | Query: status, page, size, sort | 200 PageResponse OrderSummaryDto (chỉ đơn của mình) | Customer | FR-14 |
 | GET | /orders/{id} | Path id hoặc orderCode | 200 OrderDto kèm statusHistory | Customer (chủ đơn), Staff | FR-14 |
-| POST | /orders/{id}/cancel | Body: reason | 200 OrderDto, 409 INVALID\_STATE\_TRANSITION | Customer (chủ đơn) | FR-15 |
+| GET | /orders/summary | không | 200 totalOrders, countByStatus, totalValue (không tính đơn CANCELLED) | Customer | FR-14, thẻ thống kê (Could) |
+| POST | /orders/{id}/cancel | Không có body; Frontend hiện hộp xác nhận trước khi gọi | 200 OrderDto, 409 INVALID\_STATE\_TRANSITION | Customer (chủ đơn) | FR-15 |
 | GET | /admin/orders | Query: status, customerEmail, fromDate, toDate, page, size, sort | 200 PageResponse OrderSummaryDto | Staff | FR-19 danh sách toàn hệ thống |
 | PATCH | /admin/orders/{id}/status | Body: targetStatus, note | 200 OrderDto, 409 INVALID\_STATE\_TRANSITION | Staff | FR-19 |
 
@@ -1096,7 +1102,7 @@ Tổng thời gian 14 tuần, mỗi phase kết thúc bằng một báo cáo ti�
 
 | Phase | Thời gian | Mục tiêu | Công việc chính | Sản phẩm bàn giao (Deliverables) | Tiêu chí hoàn thành |
 | --- | --- | --- | --- | --- | --- |
-| Phase 1: Phân tích và nền tảng | Tuần 1 đến 3 | Chốt phạm vi, thiết kế, dựng khung dự án | Khảo sát kccshop.vn; hoàn thiện SRS, ERD, API matrix (tài liệu này); khởi tạo Spring Boot 3.x, Flyway V1, Docker Compose PostgreSQL; Spring Security + JWT; ApiResponse, GlobalExceptionHandler; Swagger | Tài liệu SRS và thiết kế; repo backend chạy được với /auth/register, /auth/login; CI chạy test | Đăng nhập trả JWT, endpoint Admin trả 403 với token Customer; giảng viên duyệt thiết kế |
+| Phase 1: Phân tích và nền tảng | Tuần 1 đến 3 | Chốt phạm vi, thiết kế, dựng khung dự án | Khảo sát hacom.vn; hoàn thiện SRS, ERD, API matrix (tài liệu này); khởi tạo Spring Boot 3.x, Flyway V1, Docker Compose PostgreSQL; Spring Security + JWT; ApiResponse, GlobalExceptionHandler; Swagger | Tài liệu SRS và thiết kế; repo backend chạy được với /auth/register, /auth/login; CI chạy test | Đăng nhập trả JWT, endpoint Admin trả 403 với token Customer; giảng viên duyệt thiết kế |
 | Phase 2: Catalog và thuộc tính động | Tuần 4 đến 6 | Hoàn thành bài toán cốt lõi 1 | CRUD categories, brands, attribute\_definitions, products, product\_specs; SpecFilterParser; ProductSpecifications và bộ lọc đa thông số; facets; seed dữ liệu 8 danh mục, khoảng 300 sản phẩm thật; Frontend trang danh mục, lọc, chi tiết | API catalog hoàn chỉnh; kịch bản k6 cho NFR-01; Frontend 3 trang | Lọc 5 điều kiện trên 10.000 sản phẩm p95 < 200 ms; Admin thêm thuộc tính mới không sửa code |
 | Phase 3: PC Builder và giỏ hàng | Tuần 7 đến 9 | Hoàn thành bài toán cốt lõi 2 | 17 CompatibilityRule và PowerCalculator kèm unit test; API check-compatibility, gợi ý linh kiện tương thích, lưu build; Cart API; Frontend trang Build PC tương tác | API pc-builder và cart; bộ test 17 luật với dữ liệu biên; demo build PC | 100% luật có test PASS, FAIL, WARNING; kết quả khớp với 10 cấu hình mẫu kiểm tra thủ công trên pcpartpicker |
 | Phase 4: Đặt hàng, quản trị và hoàn thiện | Tuần 10 đến 14 | Quy trình bán hàng đầu cuối và báo cáo | OrderService với khóa tồn kho, OrderStateMachine, history; Admin order và inventory; test đồng thời NFR-07; Frontend checkout, lịch sử đơn, trang Admin; kiểm thử tích hợp, sửa lỗi; triển khai Docker Compose; viết báo cáo và slide bảo vệ | Hệ thống hoàn chỉnh triển khai được; báo cáo đồ án; slide; video demo | 50 đơn đồng thời không bán vượt tồn; JaCoCo service ≥ 70%; mọi FR Must có test chấp nhận PASS |
