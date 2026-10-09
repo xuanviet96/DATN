@@ -40,7 +40,7 @@ Bán linh kiện PC khác với bán hàng tổng hợp ở chỗ giá trị c�
 
 **Bài toán cốt lõi 1: thuộc tính động.** Một hệ thống có 10 danh mục, mỗi danh mục 8 đến 15 thông số, tổng cộng hơn 100 cột thông số khác nhau. Thiết kế cột cứng trong bảng products là không khả thi. Phần 3 phân tích ba giải pháp (EAV, JSONB, Separate Tables) và chọn giải pháp phù hợp với Spring Data JPA.
 
-**Bài toán cốt lõi 2: kiểm tra tương thích.** Một bộ PC hợp lệ phải thỏa đồng thời ít nhất 6 nhóm luật: Socket (CPU và Mainboard), RAM Type (RAM và Mainboard), Form Factor (Mainboard và Case), Power Budget (tổng TDP và công suất PSU), Kích thước vật lý (GPU và Case), Kết nối lưu trữ (M.2 và SATA). Mỗi luật là một hàm thuần (pure function) nhận thông số và trả về kết quả PASS, WARNING hoặc FAIL. Phần 2 đặc tả chi tiết.
+**Bài toán cốt lõi 2: kiểm tra tương thích.** Khi khách tự chọn linh kiện, hệ thống phải tự phát hiện các lỗi lắp ráp phổ biến nhất. Phạm vi đồ án gồm 2 luật: Socket (CPU và Mainboard) và Power Budget (tổng công suất ước tính và công suất PSU), tương đương mức kiểm tra của website tham khảo hacom.vn. Mỗi luật là một hàm thuần (pure function) nhận thông số và trả về PASS, WARNING, UNKNOWN hoặc FAIL. Bộ luật được thiết kế để mở rộng: thêm luật mới (loại RAM, form factor, kích thước GPU, kết nối lưu trữ) chỉ cần thêm một class. Phần 2 đặc tả chi tiết.
 
 ### 1.3 Phạm vi tính năng cốt lõi (Core Features Scope)
 
@@ -62,7 +62,7 @@ Phạm vi được giới hạn ở những tính năng chứng minh được ha
 | Admin | Quản lý người dùng và vai trò | Danh sách người dùng, gán vai trò STAFF, khóa tài khoản | Should |
 | Admin | Dashboard thống kê | Doanh thu theo ngày, đơn theo trạng thái, top sản phẩm | Could |
 
-**Ngoài phạm vi (Out of Scope):** đặt hàng không cần tài khoản (Guest checkout), tích hợp cổng thanh toán thật (VNPay, MoMo), tích hợp đơn vị vận chuyển, đánh giá và bình luận sản phẩm, chương trình khuyến mãi phức tạp, đa ngôn ngữ, ứng dụng di động. Các mục này được ghi nhận là hướng phát triển trong chương kết luận.
+**Ngoài phạm vi (Out of Scope):** đặt hàng không cần tài khoản (Guest checkout), quên mật khẩu qua email, tích hợp cổng thanh toán thật (VNPay, MoMo), tích hợp đơn vị vận chuyển, đánh giá và bình luận sản phẩm, chương trình khuyến mãi phức tạp, đa ngôn ngữ, ứng dụng di động. Các mục này được ghi nhận là hướng phát triển trong chương kết luận.
 
 ## Phần 2: Đặc tả yêu cầu phần mềm (SRS)
 
@@ -81,7 +81,7 @@ Hệ thống có 20 yêu cầu chức năng chia theo 5 nhóm nghiệp vụ và 
 | FR-07 | Tìm kiếm từ khóa | Guest | keyword | Sản phẩm có tên hoặc SKU chứa từ khóa, không phân biệt dấu | Should |
 | FR-08 | Quản lý giỏ hàng | Customer | productId, quantity | Giỏ hàng hiện tại với tổng tiền; 409 nếu vượt tồn kho | Must |
 | FR-09 | Chọn linh kiện vào slot Build PC | Guest, Customer | slot (CPU, MAINBOARD, RAM, GPU, STORAGE, PSU, CASE, COOLER), productId | Trạng thái build hiện tại; danh sách sản phẩm gợi ý tương thích cho slot kế tiếp | Must |
-| FR-10 | Kiểm tra tương thích bộ PC | Guest, Customer | Danh sách cặp slot và productId | status COMPATIBLE, WARNING hoặc INCOMPATIBLE; danh sách issues theo luật; tổng công suất ước tính; tổng giá | Must |
+| FR-10 | Kiểm tra tương thích bộ PC | Guest, Customer | Danh sách cặp slot và productId | status COMPATIBLE, WARNING, UNKNOWN hoặc INCOMPATIBLE; danh sách issues theo luật; tổng công suất ước tính; tổng giá | Must |
 | FR-11 | Lưu và tải cấu hình Build | Customer | tên build, danh sách linh kiện | buildId; danh sách build đã lưu của user | Should |
 | FR-12 | Chuyển Build vào giỏ hàng | Customer | buildId | Giỏ hàng gồm toàn bộ linh kiện của build | Must |
 | FR-13 | Tạo đơn hàng | Customer | Danh sách items, địa chỉ giao hàng, paymentMethod (COD, BANK\_TRANSFER), note | Đơn hàng trạng thái PENDING, mã đơn, snapshot giá; 409 nếu hết hàng | Must |
@@ -160,27 +160,25 @@ Page<Product> page = productRepository.findAll(spec, pageable);
 
 Bộ luật chạy trên thông số đã chuẩn hóa của từng linh kiện. Mỗi luật là một hàm thuần nhận BuildContext và trả về danh sách CompatibilityIssue. Kết quả tổng hợp là mức nghiêm trọng cao nhất.
 
+**Mức kết quả của mỗi luật:** PASS, WARNING, UNKNOWN, FAIL. Luật tự bỏ qua khi build chưa có linh kiện liên quan. Khi đã có linh kiện nhưng thiếu thuộc tính luật cần (ví dụ mainboard chưa nhập socket), luật trả UNKNOWN thay vì bỏ qua im lặng. Giao diện hiển thị UNKNOWN là "Chưa đủ dữ liệu để kết luận, vui lòng liên hệ nhân viên".
+
+| Mức nghiêm trọng cao nhất | status tổng hợp |
+| --- | --- |
+| FAIL | INCOMPATIBLE |
+| UNKNOWN | UNKNOWN |
+| WARNING | WARNING |
+| PASS (hoặc không có issue) | COMPATIBLE |
+
+Thứ tự ưu tiên: FAIL > UNKNOWN > WARNING > PASS. UNKNOWN xếp trên WARNING vì hệ thống không kết luận được build có hợp lệ hay không.
+
 **Input:** danh sách cặp (slot, productId). Slot RAM và STORAGE cho phép nhiều sản phẩm. **Output:** status, issues, powerEstimateWatt, recommendedPsuWatt, totalPrice.
 
 | Mã luật | Linh kiện liên quan | Thuộc tính so sánh | Điều kiện PASS | Mức khi vi phạm |
 | --- | --- | --- | --- | --- |
 | R01 SOCKET\_MATCH | CPU, Mainboard | cpu.socket, mb.socket | Bằng nhau (AM5 = AM5) | FAIL |
-| R02 RAM\_TYPE | RAM, Mainboard | ram.memory\_type, mb.memory\_type | Bằng nhau (DDR5 = DDR5) | FAIL |
-| R03 RAM\_SLOTS | RAM, Mainboard | tổng ram.modules, mb.ram\_slots | Tổng số thanh RAM ≤ số khe | FAIL |
-| R04 RAM\_MAX\_CAPACITY | RAM, Mainboard | tổng ram.capacity\_gb, mb.max\_memory\_gb | Tổng dung lượng ≤ dung lượng tối đa | FAIL |
-| R05 RAM\_SPEED | RAM, Mainboard | ram.speed\_mhz, mb.max\_memory\_speed\_mhz | Bus RAM ≤ bus tối đa mainboard | WARNING (RAM chạy ở bus thấp hơn) |
-| R06 MB\_FORM\_FACTOR | Mainboard, Case | mb.form\_factor, case.supported\_mb\_form\_factors | form\_factor thuộc danh sách hỗ trợ | FAIL |
-| R07 GPU\_LENGTH | GPU, Case | gpu.length\_mm, case.max\_gpu\_length\_mm | Chiều dài GPU ≤ giới hạn | FAIL |
-| R08 GPU\_PCIE\_SLOT | GPU, Mainboard | mb.pcie\_x16\_slots | Có ít nhất 1 khe PCIe x16 | FAIL |
-| R09 COOLER\_SOCKET | Cooler, CPU | cooler.supported\_sockets, cpu.socket | Socket CPU thuộc danh sách hỗ trợ | FAIL |
-| R10 COOLER\_HEIGHT | Cooler, Case | cooler.height\_mm, case.max\_cooler\_height\_mm | Chiều cao tản ≤ giới hạn (chỉ áp dụng tản khí) | FAIL |
-| R11 COOLER\_TDP | Cooler, CPU | cooler.max\_tdp\_w, cpu.tdp\_w | TDP tản ≥ TDP CPU | WARNING |
-| R12 PSU\_FORM\_FACTOR | PSU, Case | psu.form\_factor, case.supported\_psu\_form\_factors | ATX, SFX thuộc danh sách hỗ trợ | FAIL |
-| R13 POWER\_BUDGET | PSU, tất cả | psu.wattage\_w, powerEstimate | psu.wattage ≥ powerEstimate × 1,3 | FAIL nếu psu.wattage < powerEstimate; WARNING nếu dưới ngưỡng dự phòng 30% |
-| R14 M2\_SLOTS | Storage, Mainboard | số ổ M.2, mb.m2\_slots | Số ổ M.2 ≤ số khe M.2 | FAIL |
-| R15 SATA\_PORTS | Storage, Mainboard | số ổ SATA, mb.sata\_ports | Số ổ SATA ≤ số cổng SATA | FAIL |
-| R16 DISPLAY\_OUTPUT | CPU, GPU | cpu.has\_igpu, slot GPU | Có GPU rời hoặc CPU có iGPU | FAIL |
-| R17 REQUIRED\_SLOTS | tất cả | slot CPU, MAINBOARD, RAM, STORAGE, PSU, CASE | Đủ 6 slot bắt buộc | WARNING (build chưa hoàn chỉnh) |
+| R02 POWER\_BUDGET | PSU, tất cả | psu.wattage\_w, powerEstimate | psu.wattage ≥ powerEstimate × 1,3 | FAIL nếu psu.wattage < powerEstimate; WARNING nếu dưới ngưỡng dự phòng 30% |
+
+Phạm vi đồ án chỉ gồm 2 luật trên (quyết định ngày 09/10/2026, giữ đơn giản). Các luật khác như loại RAM, số khe RAM, form factor, chiều dài GPU, tản nhiệt, khe M.2, cổng SATA, đồ họa tích hợp và đủ slot bắt buộc được ghi vào hướng phát triển.
 
 **Công thức ước tính công suất (Power Estimate):** hệ số là giá trị cấu hình trong application.yml, không hard-code.
 
@@ -206,7 +204,7 @@ public CompatibilityResult check(BuildRequest req) {
     // 2. Chuẩn hóa thành BuildContext: spec code -> giá trị đã ép kiểu
     BuildContext ctx = BuildContext.from(bySlot);
 
-    // 3. Chạy tuần tự các luật, mỗi luật tự bỏ qua khi thiếu linh kiện liên quan
+    // 3. Chạy tuần tự các luật: thiếu linh kiện liên quan thì bỏ qua, thiếu thuộc tính thì trả UNKNOWN
     List<CompatibilityIssue> issues = rules.stream()          // List<CompatibilityRule> inject qua Spring
         .flatMap(rule -> rule.evaluate(ctx).stream())
         .toList();
@@ -417,7 +415,7 @@ Thuộc tính dạng danh sách (Case hỗ trợ nhiều form factor) lưu value
 | pc\_builds | name | VARCHAR(150) | NOT NULL |
 | pc\_builds | total\_price | NUMERIC(15,0) | NOT NULL, snapshot khi lưu |
 | pc\_builds | power\_estimate\_w | INT | NULL |
-| pc\_builds | compatibility\_status | VARCHAR(20) | CHECK IN (COMPATIBLE, WARNING, INCOMPATIBLE) |
+| pc\_builds | compatibility\_status | VARCHAR(20) | CHECK IN (COMPATIBLE, WARNING, UNKNOWN, INCOMPATIBLE) |
 | pc\_builds | created\_at, updated\_at | TIMESTAMPTZ | NOT NULL |
 | pc\_build\_items | id | BIGSERIAL | PK |
 | pc\_build\_items | build\_id | BIGINT | FK pc\_builds(id) ON DELETE CASCADE |
@@ -799,7 +797,7 @@ Accept: application/json
 }
 ```
 
-**Ví dụ 2: Kiểm tra tương thích bộ PC có PSU yếu và RAM sai chuẩn**
+**Ví dụ 2: Kiểm tra tương thích bộ PC có CPU sai socket và PSU yếu**
 
 ```http
 POST /api/v1/pc-builder/check-compatibility
@@ -826,28 +824,21 @@ Content-Type: application/json
   "message": "OK",
   "data": {
     "status": "INCOMPATIBLE",
-    "summary": { "fail": 2, "warning": 1, "passed": 11 },
+    "summary": { "fail": 2, "unknown": 0, "warning": 0, "passed": 0 },
     "issues": [
       {
-        "ruleCode": "R02_RAM_TYPE",
+        "ruleCode": "R01_SOCKET_MATCH",
         "severity": "FAIL",
-        "slots": ["RAM", "MAINBOARD"],
-        "message": "RAM DDR4 không tương thích với mainboard hỗ trợ DDR5",
-        "details": { "ramMemoryType": "DDR4", "mainboardMemoryType": "DDR5" }
+        "slots": ["CPU", "MAINBOARD"],
+        "message": "CPU socket AM5 không lắp được vào mainboard socket LGA1700",
+        "details": { "cpuSocket": "AM5", "mainboardSocket": "LGA1700" }
       },
       {
-        "ruleCode": "R13_POWER_BUDGET",
+        "ruleCode": "R02_POWER_BUDGET",
         "severity": "FAIL",
         "slots": ["PSU"],
         "message": "Nguồn 450 W thấp hơn công suất ước tính 478 W",
         "details": { "psuWattage": 450, "powerEstimateWatt": 478, "recommendedPsuWatt": 650 }
-      },
-      {
-        "ruleCode": "R17_REQUIRED_SLOTS",
-        "severity": "WARNING",
-        "slots": ["COOLER"],
-        "message": "Chưa chọn tản nhiệt; CPU này không kèm tản stock",
-        "details": { }
       }
     ],
     "powerEstimateWatt": 478,
@@ -855,7 +846,7 @@ Content-Type: application/json
     "totalPrice": 32870000,
     "items": [
       { "slot": "CPU", "productId": 1021, "name": "AMD Ryzen 7 7700", "quantity": 1, "unitPrice": 7490000 },
-      { "slot": "MAINBOARD", "productId": 2210, "name": "ASUS TUF B650-PLUS", "quantity": 1, "unitPrice": 4990000 }
+      { "slot": "MAINBOARD", "productId": 2210, "name": "ASUS TUF B760-PLUS (LGA1700)", "quantity": 1, "unitPrice": 4990000 }
     ]
   },
   "timestamp": "2026-10-09T09:31:00Z"
@@ -997,7 +988,7 @@ com.pcstore
 ├── user/            User, Role, Address, UserRepository
 ├── catalog/         Category, Brand, AttributeDefinition, Product, ProductSpec,
 │                    ProductController, ProductService, spec/ProductSpecifications, SpecFilterParser
-├── pcbuilder/       PcBuild, PcBuildItem, CompatibilityService, rule/ (R01...R17), PowerCalculator
+├── pcbuilder/       PcBuild, PcBuildItem, CompatibilityService, rule/ (R01 Socket, R02 Power Budget), PowerCalculator
 ├── cart/            Cart, CartItem, CartService
 ├── order/           Order, OrderItem, OrderStatusHistory, OrderService, OrderStateMachine
 └── inventory/       InventoryTransaction, InventoryService
@@ -1062,7 +1053,7 @@ sequenceDiagram
     participant CS as CompatibilityService
     participant PR as ProductRepository
     participant DB as PostgreSQL
-    participant RL as CompatibilityRule[] (R01..R17)
+    participant RL as CompatibilityRule[] (R01, R02)
     participant PW as PowerCalculator
 
     U->>FE: Chọn PSU 450W vào slot PSU
@@ -1082,18 +1073,18 @@ sequenceDiagram
         CS->>RL: rule.evaluate(ctx)
         RL-->>CS: List<CompatibilityIssue> (rỗng nếu PASS hoặc thiếu linh kiện liên quan)
     end
-    Note over CS,RL: R02 RAM_TYPE -> FAIL (DDR4 vs DDR5)
+    Note over CS,RL: R01 SOCKET_MATCH -> FAIL (AM5 vs LGA1700)
     CS->>PW: estimate(ctx)
     PW->>PW: cpu.tdp + gpu.tdp + 50 + 5 x RAM + 8 x SSD + 10 + 15
     PW-->>CS: powerEstimateWatt = 478
     CS->>PW: recommendPsu(478)
     PW-->>CS: 650 (478 x 1.3 = 621, làm tròn lên bội 50)
-    CS->>RL: R13 POWER_BUDGET.evaluate(ctx, powerEstimate)
+    CS->>RL: R02 POWER_BUDGET.evaluate(ctx, powerEstimate)
     RL-->>CS: FAIL (450 < 478)
     CS->>CS: Tổng hợp: worst = FAIL -> status INCOMPATIBLE; totalPrice = sum(unitPrice x qty)
     CS-->>BC: CompatibilityResult
-    BC-->>FE: 200 ApiResponse { status, issues[3], powerEstimateWatt, recommendedPsuWatt, totalPrice }
-    FE-->>U: Đánh dấu đỏ slot RAM và PSU, gợi ý nguồn 650W
+    BC-->>FE: 200 ApiResponse { status, issues[2], powerEstimateWatt, recommendedPsuWatt, totalPrice }
+    FE-->>U: Đánh dấu đỏ slot CPU, Mainboard và PSU, gợi ý nguồn 650W
 ```
 
 ### 5.3 Lộ trình thực hiện (Milestones)
@@ -1104,7 +1095,7 @@ Tổng thời gian 14 tuần, mỗi phase kết thúc bằng một báo cáo ti�
 | --- | --- | --- | --- | --- | --- |
 | Phase 1: Phân tích và nền tảng | Tuần 1 đến 3 | Chốt phạm vi, thiết kế, dựng khung dự án | Khảo sát hacom.vn; hoàn thiện SRS, ERD, API matrix (tài liệu này); khởi tạo Spring Boot 3.x, Flyway V1, Docker Compose PostgreSQL; Spring Security + JWT; ApiResponse, GlobalExceptionHandler; Swagger | Tài liệu SRS và thiết kế; repo backend chạy được với /auth/register, /auth/login; CI chạy test | Đăng nhập trả JWT, endpoint Admin trả 403 với token Customer; giảng viên duyệt thiết kế |
 | Phase 2: Catalog và thuộc tính động | Tuần 4 đến 6 | Hoàn thành bài toán cốt lõi 1 | CRUD categories, brands, attribute\_definitions, products, product\_specs; SpecFilterParser; ProductSpecifications và bộ lọc đa thông số; facets; seed dữ liệu 8 danh mục, khoảng 300 sản phẩm thật; Frontend trang danh mục, lọc, chi tiết | API catalog hoàn chỉnh; kịch bản k6 cho NFR-01; Frontend 3 trang | Lọc 5 điều kiện trên 10.000 sản phẩm p95 < 200 ms; Admin thêm thuộc tính mới không sửa code |
-| Phase 3: PC Builder và giỏ hàng | Tuần 7 đến 9 | Hoàn thành bài toán cốt lõi 2 | 17 CompatibilityRule và PowerCalculator kèm unit test; API check-compatibility, gợi ý linh kiện tương thích, lưu build; Cart API; Frontend trang Build PC tương tác | API pc-builder và cart; bộ test 17 luật với dữ liệu biên; demo build PC | 100% luật có test PASS, FAIL, WARNING; kết quả khớp với 10 cấu hình mẫu kiểm tra thủ công trên pcpartpicker |
+| Phase 3: PC Builder và giỏ hàng | Tuần 7 đến 9 | Hoàn thành bài toán cốt lõi 2 | 2 CompatibilityRule (Socket, Power Budget) và PowerCalculator kèm unit test; API check-compatibility, gợi ý linh kiện tương thích, lưu build; Cart API; Frontend trang Build PC tương tác | API pc-builder và cart; bộ test 2 luật với dữ liệu biên; demo build PC | 100% luật có test PASS, FAIL, WARNING, UNKNOWN; kết quả khớp với 5 cấu hình mẫu kiểm tra thủ công |
 | Phase 4: Đặt hàng, quản trị và hoàn thiện | Tuần 10 đến 14 | Quy trình bán hàng đầu cuối và báo cáo | OrderService với khóa tồn kho, OrderStateMachine, history; Admin order và inventory; test đồng thời NFR-07; Frontend checkout, lịch sử đơn, trang Admin; kiểm thử tích hợp, sửa lỗi; triển khai Docker Compose; viết báo cáo và slide bảo vệ | Hệ thống hoàn chỉnh triển khai được; báo cáo đồ án; slide; video demo | 50 đơn đồng thời không bán vượt tồn; JaCoCo service ≥ 70%; mọi FR Must có test chấp nhận PASS |
 
 **Rủi ro chính và phương án dự phòng:**
